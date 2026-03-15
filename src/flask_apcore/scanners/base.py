@@ -3,14 +3,9 @@
 All scanners (NativeFlaskScanner, SmorestScanner, RestxScanner) extend
 BaseScanner and produce lists of ScannedModule instances.
 
-Adapted from django-apcore's scanners/base.py:
-- Added Flask-specific fields: http_method, url_rule
-- scan() takes Flask app parameter instead of no params
-- _deduplicate_ids() operates on ScannedModule list instead of str list
-- Added _is_api_route() heuristic for Flask route filtering
-- annotations: ModuleAnnotations for behavioral hints (readonly, destructive, etc.)
-- documentation: Full docstring for rich MCP tool descriptions
-- metadata: Arbitrary key-value data for scanner-specific information
+ScannedModule keeps Flask-specific fields (http_method, url_rule) as
+top-level attributes. The toolkit's domain-agnostic ScannedModule stores
+these in metadata instead.
 """
 
 from __future__ import annotations
@@ -21,6 +16,7 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Callable
 
 from apcore import ModuleAnnotations
+from apcore_toolkit import BaseScanner as _ToolkitBaseScanner
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -66,8 +62,9 @@ class BaseScanner(ABC):
     """Abstract base class for all Flask scanners.
 
     Subclasses must implement scan() and get_source_name().
-    Utility methods filter_modules(), _deduplicate_ids(), and
-    _is_api_route() are provided for common scanner operations.
+    Utility methods filter_modules(), _deduplicate_ids(),
+    infer_annotations_from_method(), and _is_api_route() are provided
+    for common scanner operations.
     """
 
     @abstractmethod
@@ -121,6 +118,24 @@ class BaseScanner(ABC):
             result = [m for m in result if not pattern.search(m.module_id)]
 
         return result
+
+    @staticmethod
+    def infer_annotations_from_method(method: str) -> ModuleAnnotations:
+        """Infer behavioral annotations from an HTTP method.
+
+        Delegates to the shared logic in apcore-toolkit. Mapping:
+            GET    -> readonly=True, cacheable=True
+            DELETE -> destructive=True
+            PUT    -> idempotent=True
+            Others -> default (all False)
+
+        Args:
+            method: HTTP method string (e.g., "GET", "post").
+
+        Returns:
+            ModuleAnnotations instance with inferred flags.
+        """
+        return _ToolkitBaseScanner.infer_annotations_from_method(method)
 
     def _deduplicate_ids(self, modules: list[ScannedModule]) -> list[ScannedModule]:
         """Resolve duplicate module IDs by appending _2, _3, etc.

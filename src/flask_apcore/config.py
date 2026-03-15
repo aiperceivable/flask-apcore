@@ -50,6 +50,24 @@ DEFAULT_SERVE_JWT_ALGORITHM = "HS256"
 MIN_HMAC_SECRET_LENGTH = 16
 HMAC_ALGORITHMS = ("HS256", "HS384", "HS512")
 
+# Approval defaults (apcore-mcp 0.8.0+)
+DEFAULT_SERVE_APPROVAL = "off"
+
+# Output formatter defaults (apcore-mcp 0.10.0+)
+DEFAULT_SERVE_OUTPUT_FORMATTER = None
+
+# System modules defaults (apcore 0.11.0+)
+DEFAULT_SYS_MODULES_ENABLED = False
+DEFAULT_SYS_MODULES_EVENTS_ENABLED = False
+
+# Serve filtering defaults (apcore-mcp 0.10.0+)
+DEFAULT_SERVE_REQUIRE_AUTH = True
+DEFAULT_SERVE_EXPLORER_TITLE = "MCP Tool Explorer"
+
+# Scan defaults
+DEFAULT_SCAN_AI_ENHANCE = False
+DEFAULT_SCAN_VERIFY = False
+
 # ---------------------------------------------------------------------------
 # Valid choices
 # ---------------------------------------------------------------------------
@@ -60,6 +78,7 @@ VALID_TRACING_EXPORTERS = ("stdout", "memory", "otlp")
 VALID_LOGGING_FORMATS = ("json", "text")
 VALID_LOGGING_LEVELS = ("trace", "debug", "info", "warn", "error", "fatal")
 VALID_JWT_ALGORITHMS = ("HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512")
+VALID_APPROVAL_MODES = ("off", "elicit", "auto-approve", "always-deny")
 
 
 @dataclass(frozen=True)
@@ -113,6 +132,33 @@ class ApcoreSettings:
     serve_jwt_algorithm: str
     serve_jwt_audience: str | None
     serve_jwt_issuer: str | None
+
+    # Approval (apcore-mcp 0.8.0+)
+    serve_approval: str
+
+    # Output formatter (apcore-mcp 0.10.0+)
+    serve_output_formatter: str | None
+
+    # System modules (apcore 0.11.0+)
+    sys_modules_enabled: bool
+    sys_modules_events_enabled: bool
+
+    # Serve filtering (apcore-mcp 0.10.0+)
+    serve_tags: list[str] | None
+    serve_prefix: str | None
+
+    # Auth control (apcore-mcp 0.10.0+)
+    serve_require_auth: bool
+    serve_exempt_paths: list[str] | None
+
+    # Explorer customization (apcore-mcp 0.10.0+)
+    serve_explorer_title: str
+    serve_explorer_project_name: str | None
+    serve_explorer_project_url: str | None
+
+    # Scan options
+    scan_ai_enhance: bool
+    scan_verify: bool
 
 
 def load_settings(app: Flask) -> ApcoreSettings:
@@ -402,6 +448,114 @@ def load_settings(app: Flask) -> ApcoreSettings:
         actual = type(serve_jwt_issuer).__name__
         raise ValueError(f"APCORE_SERVE_JWT_ISSUER must be a string. Got: {actual}")
 
+    # === Approval settings (apcore-mcp 0.8.0+) ===
+
+    # --- serve_approval ---
+    serve_approval = app.config.get("APCORE_SERVE_APPROVAL", DEFAULT_SERVE_APPROVAL)
+    if serve_approval is None:
+        serve_approval = DEFAULT_SERVE_APPROVAL
+    if not isinstance(serve_approval, str):
+        actual = type(serve_approval).__name__
+        raise ValueError(f"APCORE_SERVE_APPROVAL must be a string. Got: {actual}")
+    if serve_approval not in VALID_APPROVAL_MODES:
+        choices = ", ".join(VALID_APPROVAL_MODES)
+        raise ValueError(f"APCORE_SERVE_APPROVAL must be one of: {choices}." f" Got: '{serve_approval}'")
+
+    # === Output formatter settings (apcore-mcp 0.10.0+) ===
+
+    # --- serve_output_formatter ---
+    serve_output_formatter = app.config.get("APCORE_SERVE_OUTPUT_FORMATTER", DEFAULT_SERVE_OUTPUT_FORMATTER)
+    if serve_output_formatter is not None and not isinstance(serve_output_formatter, str):
+        actual = type(serve_output_formatter).__name__
+        raise ValueError(f"APCORE_SERVE_OUTPUT_FORMATTER must be a dotted path string. Got: {actual}")
+
+    # === System modules settings (apcore 0.11.0+) ===
+
+    # --- sys_modules_enabled ---
+    sys_modules_enabled = app.config.get("APCORE_SYS_MODULES_ENABLED", DEFAULT_SYS_MODULES_ENABLED)
+    if sys_modules_enabled is None:
+        sys_modules_enabled = DEFAULT_SYS_MODULES_ENABLED
+    if not isinstance(sys_modules_enabled, bool):
+        actual = type(sys_modules_enabled).__name__
+        raise ValueError(f"APCORE_SYS_MODULES_ENABLED must be a boolean. Got: {actual}")
+
+    # --- sys_modules_events_enabled ---
+    sys_modules_events_enabled = app.config.get("APCORE_SYS_MODULES_EVENTS_ENABLED", DEFAULT_SYS_MODULES_EVENTS_ENABLED)
+    if sys_modules_events_enabled is None:
+        sys_modules_events_enabled = DEFAULT_SYS_MODULES_EVENTS_ENABLED
+    if not isinstance(sys_modules_events_enabled, bool):
+        actual = type(sys_modules_events_enabled).__name__
+        raise ValueError(f"APCORE_SYS_MODULES_EVENTS_ENABLED must be a boolean. Got: {actual}")
+
+    # === Serve filtering settings ===
+
+    # --- serve_tags ---
+    serve_tags = app.config.get("APCORE_SERVE_TAGS", None)
+    if serve_tags is not None:
+        if not isinstance(serve_tags, list) or not all(isinstance(t, str) for t in serve_tags):
+            raise ValueError("APCORE_SERVE_TAGS must be a list of strings.")
+
+    # --- serve_prefix ---
+    serve_prefix = app.config.get("APCORE_SERVE_PREFIX", None)
+    if serve_prefix is not None and not isinstance(serve_prefix, str):
+        actual = type(serve_prefix).__name__
+        raise ValueError(f"APCORE_SERVE_PREFIX must be a string. Got: {actual}")
+
+    # === Auth control settings ===
+
+    # --- serve_require_auth ---
+    serve_require_auth = app.config.get("APCORE_SERVE_REQUIRE_AUTH", DEFAULT_SERVE_REQUIRE_AUTH)
+    if serve_require_auth is None:
+        serve_require_auth = DEFAULT_SERVE_REQUIRE_AUTH
+    if not isinstance(serve_require_auth, bool):
+        actual = type(serve_require_auth).__name__
+        raise ValueError(f"APCORE_SERVE_REQUIRE_AUTH must be a boolean. Got: {actual}")
+
+    # --- serve_exempt_paths ---
+    serve_exempt_paths = app.config.get("APCORE_SERVE_EXEMPT_PATHS", None)
+    if serve_exempt_paths is not None:
+        if not isinstance(serve_exempt_paths, list) or not all(isinstance(p, str) for p in serve_exempt_paths):
+            raise ValueError("APCORE_SERVE_EXEMPT_PATHS must be a list of strings.")
+
+    # === Explorer customization settings ===
+
+    # --- serve_explorer_title ---
+    serve_explorer_title = app.config.get("APCORE_SERVE_EXPLORER_TITLE", DEFAULT_SERVE_EXPLORER_TITLE)
+    if serve_explorer_title is None:
+        serve_explorer_title = DEFAULT_SERVE_EXPLORER_TITLE
+    if not isinstance(serve_explorer_title, str) or len(serve_explorer_title) == 0:
+        raise ValueError("APCORE_SERVE_EXPLORER_TITLE must be a non-empty string.")
+
+    # --- serve_explorer_project_name ---
+    serve_explorer_project_name = app.config.get("APCORE_SERVE_EXPLORER_PROJECT_NAME", None)
+    if serve_explorer_project_name is not None and not isinstance(serve_explorer_project_name, str):
+        actual = type(serve_explorer_project_name).__name__
+        raise ValueError(f"APCORE_SERVE_EXPLORER_PROJECT_NAME must be a string. Got: {actual}")
+
+    # --- serve_explorer_project_url ---
+    serve_explorer_project_url = app.config.get("APCORE_SERVE_EXPLORER_PROJECT_URL", None)
+    if serve_explorer_project_url is not None and not isinstance(serve_explorer_project_url, str):
+        actual = type(serve_explorer_project_url).__name__
+        raise ValueError(f"APCORE_SERVE_EXPLORER_PROJECT_URL must be a string. Got: {actual}")
+
+    # === Scan options ===
+
+    # --- scan_ai_enhance ---
+    scan_ai_enhance = app.config.get("APCORE_SCAN_AI_ENHANCE", DEFAULT_SCAN_AI_ENHANCE)
+    if scan_ai_enhance is None:
+        scan_ai_enhance = DEFAULT_SCAN_AI_ENHANCE
+    if not isinstance(scan_ai_enhance, bool):
+        actual = type(scan_ai_enhance).__name__
+        raise ValueError(f"APCORE_SCAN_AI_ENHANCE must be a boolean. Got: {actual}")
+
+    # --- scan_verify ---
+    scan_verify = app.config.get("APCORE_SCAN_VERIFY", DEFAULT_SCAN_VERIFY)
+    if scan_verify is None:
+        scan_verify = DEFAULT_SCAN_VERIFY
+    if not isinstance(scan_verify, bool):
+        actual = type(scan_verify).__name__
+        raise ValueError(f"APCORE_SCAN_VERIFY must be a boolean. Got: {actual}")
+
     return ApcoreSettings(
         module_dir=module_dir,
         auto_discover=auto_discover,
@@ -436,4 +590,17 @@ def load_settings(app: Flask) -> ApcoreSettings:
         serve_jwt_algorithm=serve_jwt_algorithm,
         serve_jwt_audience=serve_jwt_audience,
         serve_jwt_issuer=serve_jwt_issuer,
+        serve_approval=serve_approval,
+        serve_output_formatter=serve_output_formatter,
+        sys_modules_enabled=sys_modules_enabled,
+        sys_modules_events_enabled=sys_modules_events_enabled,
+        serve_tags=serve_tags,
+        serve_prefix=serve_prefix,
+        serve_require_auth=serve_require_auth,
+        serve_exempt_paths=serve_exempt_paths,
+        serve_explorer_title=serve_explorer_title,
+        serve_explorer_project_name=serve_explorer_project_name,
+        serve_explorer_project_url=serve_explorer_project_url,
+        scan_ai_enhance=scan_ai_enhance,
+        scan_verify=scan_verify,
     )

@@ -115,11 +115,11 @@ class TestScanAndRegister:
 
             # GET should be readonly
             assert get_mod.annotations is not None
-            assert get_mod.annotations["readonly"] is True
+            assert get_mod.annotations.readonly is True
 
             # DELETE should be destructive
             assert del_mod.annotations is not None
-            assert del_mod.annotations["destructive"] is True
+            assert del_mod.annotations.destructive is True
 
     def test_registered_modules_have_descriptions(self, tmp_path):
         app = Flask(__name__)

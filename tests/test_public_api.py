@@ -28,6 +28,29 @@ class TestExportsExist:
         "ModuleAnnotations",
         "ModuleDescriptor",
         "Registry",
+        # Approval system (0.7.0+)
+        "ApprovalHandler",
+        "AutoApproveHandler",
+        "AlwaysDenyHandler",
+        # Cancellation (0.8.0+)
+        "CancelToken",
+        # Events (0.11.0+)
+        "EventEmitter",
+        "EventSubscriber",
+        "ApCoreEvent",
+        # Preflight (0.9.0+)
+        "PreflightResult",
+        # Module types
+        "FunctionModule",
+        "ModuleExample",
+        # Errors
+        "ModuleError",
+        "ModuleNotFoundError",
+        "ACLDeniedError",
+        "SchemaValidationError",
+        "InvalidInputError",
+        # System modules (0.11.0+)
+        "register_sys_modules",
     ]
 
     @pytest.mark.parametrize("name", EXPECTED_EXPORTS)

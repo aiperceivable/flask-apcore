@@ -5,12 +5,9 @@ from __future__ import annotations
 
 import pytest
 from apcore import ModuleAnnotations, Registry
+from apcore_toolkit import flatten_pydantic_params, resolve_target
 
-from flask_apcore.output.registry_writer import (
-    RegistryWriter,
-    _flatten_pydantic_params,
-    _resolve_target,
-)
+from flask_apcore.output.registry_writer import RegistryWriter
 from flask_apcore.scanners.base import ScannedModule
 
 
@@ -49,20 +46,20 @@ def _make_module(
 
 
 class TestResolveTarget:
-    """Test _resolve_target helper."""
+    """Test resolve_target helper (from apcore-toolkit)."""
 
     def test_resolves_function(self):
-        func = _resolve_target("tests._test_target_module:sample_handler")
+        func = resolve_target("tests._test_target_module:sample_handler")
         assert callable(func)
         assert func.__name__ == "sample_handler"
 
     def test_missing_module_raises(self):
         with pytest.raises(ImportError):
-            _resolve_target("nonexistent_module:func")
+            resolve_target("nonexistent_module:func")
 
     def test_missing_attr_raises(self):
         with pytest.raises(AttributeError):
-            _resolve_target("tests._test_target_module:nonexistent_func")
+            resolve_target("tests._test_target_module:nonexistent_func")
 
 
 class TestRegistryWriter:
@@ -73,9 +70,10 @@ class TestRegistryWriter:
         registry = Registry()
         modules = [_make_module(module_id="test.get")]
 
-        registered = writer.write(modules, registry)
+        results = writer.write(modules, registry)
 
-        assert registered == ["test.get"]
+        assert len(results) == 1
+        assert results[0].module_id == "test.get"
         fm = registry.get("test.get")
         assert fm is not None
         assert fm.module_id == "test.get"
@@ -99,9 +97,9 @@ class TestRegistryWriter:
             _make_module(module_id="b.post"),
         ]
 
-        registered = writer.write(modules, registry)
+        results = writer.write(modules, registry)
 
-        assert len(registered) == 2
+        assert len(results) == 2
         assert registry.get("a.get") is not None
         assert registry.get("b.post") is not None
 
@@ -110,9 +108,10 @@ class TestRegistryWriter:
         registry = Registry()
         modules = [_make_module(module_id="test.get")]
 
-        registered = writer.write(modules, registry, dry_run=True)
+        results = writer.write(modules, registry, dry_run=True)
 
-        assert registered == []
+        assert len(results) == 1
+        assert results[0].module_id == "test.get"
         assert registry.get("test.get") is None
 
     def test_annotations_passed_to_function_module(self):
@@ -129,7 +128,7 @@ class TestRegistryWriter:
 
         fm = registry.get("test.get")
         assert fm.annotations is not None
-        assert fm.annotations["readonly"] is True
+        assert fm.annotations.readonly is True
 
     def test_documentation_passed_to_function_module(self):
         writer = RegistryWriter()
@@ -186,13 +185,13 @@ class TestRegistryWriter:
         writer = RegistryWriter()
         registry = Registry()
 
-        registered = writer.write([], registry)
+        results = writer.write([], registry)
 
-        assert registered == []
+        assert results == []
 
 
 # ---------------------------------------------------------------------------
-# _flatten_pydantic_params
+# flatten_pydantic_params (from apcore-toolkit)
 # ---------------------------------------------------------------------------
 
 
@@ -200,13 +199,13 @@ class TestFlattenPydanticParams:
     """Test that Pydantic model params are flattened to scalar kwargs."""
 
     def test_no_pydantic_returns_original(self):
-        func = _resolve_target("tests._test_target_module:sample_handler")
-        wrapped = _flatten_pydantic_params(func)
+        func = resolve_target("tests._test_target_module:sample_handler")
+        wrapped = flatten_pydantic_params(func)
         assert wrapped is func
 
     def test_pydantic_body_flattened(self):
-        func = _resolve_target("tests._test_target_module:create_item")
-        wrapped = _flatten_pydantic_params(func)
+        func = resolve_target("tests._test_target_module:create_item")
+        wrapped = flatten_pydantic_params(func)
         assert wrapped is not func
 
         result = wrapped(title="Buy milk", description="From store", done=False)
@@ -215,8 +214,8 @@ class TestFlattenPydanticParams:
         assert result.description == "From store"
 
     def test_mixed_params_flattened(self):
-        func = _resolve_target("tests._test_target_module:update_item")
-        wrapped = _flatten_pydantic_params(func)
+        func = resolve_target("tests._test_target_module:update_item")
+        wrapped = flatten_pydantic_params(func)
 
         result = wrapped(item_id=42, title="Updated", description="New desc", done=True)
         assert result.id == 42
@@ -224,8 +223,8 @@ class TestFlattenPydanticParams:
         assert result.done is True
 
     def test_pydantic_defaults_honoured(self):
-        func = _resolve_target("tests._test_target_module:create_item")
-        wrapped = _flatten_pydantic_params(func)
+        func = resolve_target("tests._test_target_module:create_item")
+        wrapped = flatten_pydantic_params(func)
 
         # Only required field; description and done have defaults
         result = wrapped(title="Minimal")
@@ -234,8 +233,8 @@ class TestFlattenPydanticParams:
         assert result.done is False
 
     def test_wrapper_preserves_name_and_doc(self):
-        func = _resolve_target("tests._test_target_module:create_item")
-        wrapped = _flatten_pydantic_params(func)
+        func = resolve_target("tests._test_target_module:create_item")
+        wrapped = flatten_pydantic_params(func)
         assert wrapped.__name__ == "create_item"
         assert "Create a new item" in (wrapped.__doc__ or "")
 

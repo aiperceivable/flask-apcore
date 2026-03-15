@@ -5,7 +5,8 @@ Adapted from django-apcore's management/commands/apcore_scan.py and apcore_serve
 
 Features:
 - scan: --output is optional; omit for direct registry registration
-- serve: supports --validate-inputs, --log-level, metrics_collector passthrough
+- serve: supports --validate-inputs, --log-level, metrics_collector passthrough,
+         --approval, --output-formatter
 """
 
 from __future__ import annotations
@@ -33,7 +34,7 @@ apcore_cli = AppGroup("apcore", help="apcore AI-Perceivable Core commands.")
 @click.option(
     "--output",
     "-o",
-    type=click.Choice(["yaml"]),
+    type=click.Choice(["yaml", "python"]),
     default=None,
     help="Output format. Omit to register directly.",
 )
@@ -63,8 +64,20 @@ apcore_cli = AppGroup("apcore", help="apcore AI-Perceivable Core commands.")
     default=None,
     help="Regex pattern: exclude matching module IDs.",
 )
+@click.option(
+    "--ai-enhance",
+    is_flag=True,
+    default=False,
+    help="Use AI to enhance module descriptions and annotations (requires APCORE_AI_ENABLED).",
+)
+@click.option(
+    "--verify",
+    is_flag=True,
+    default=False,
+    help="Verify written output (YAML syntax, registry retrieval).",
+)
 @with_appcontext
-def scan_command(source, output, output_dir, dry_run, include, exclude):
+def scan_command(source, output, output_dir, dry_run, include, exclude, ai_enhance, verify):
     """Scan Flask routes and generate apcore module definitions."""
     app = current_app._get_current_object()
     settings = app.extensions["apcore"]["settings"]
@@ -113,6 +126,21 @@ def scan_command(source, output, output_dir, dry_run, include, exclude):
         click.echo(f"[flask-apcore] No routes found for source '{source_name}'. " f"Ensure your API is configured.")
         raise SystemExit(1)
 
+    # AI Enhancement (if enabled)
+    if ai_enhance or settings.scan_ai_enhance:
+        try:
+            from apcore_toolkit import AIEnhancer
+
+            if AIEnhancer.is_enabled():
+                enhancer = AIEnhancer()
+                click.echo("[flask-apcore] Running AI enhancement...")
+                modules = enhancer.enhance(modules)
+                click.echo(f"[flask-apcore] AI enhanced {len(modules)} modules.")
+            else:
+                click.echo("[flask-apcore] AI enhancement skipped (APCORE_AI_ENABLED not set).")
+        except ImportError:
+            click.echo("[flask-apcore] AI enhancement not available (apcore-toolkit required).")
+
     # Report warnings
     all_warnings = []
     for module in modules:
@@ -133,16 +161,16 @@ def scan_command(source, output, output_dir, dry_run, include, exclude):
             click.echo("[flask-apcore] Dry run -- no modules registered.")
             writer.write(modules, registry, dry_run=True)
         else:
-            result = writer.write(modules, registry)
-            click.echo(f"[flask-apcore] Registered {len(result)} modules.")
+            results = writer.write(modules, registry)
+            click.echo(f"[flask-apcore] Registered {len(results)} modules.")
     else:
-        # File output mode (YAML / JSON)
+        # File output mode (YAML)
         if dry_run:
             click.echo("[flask-apcore] Dry run -- no files written.")
             writer.write(modules, output_dir, dry_run=True)
         else:
-            writer.write(modules, output_dir)
-            click.echo(f"[flask-apcore] Generated {len(modules)} module definitions.")
+            results = writer.write(modules, output_dir)
+            click.echo(f"[flask-apcore] Generated {len(results)} module definitions.")
             click.echo(f"[flask-apcore] Written to {output_dir}/")
 
 
@@ -233,6 +261,59 @@ def scan_command(source, output, output_dir, dry_run, include, exclude):
     default=None,
     help="Expected JWT issuer claim.",
 )
+@click.option(
+    "--approval",
+    type=click.Choice(["off", "elicit", "auto-approve", "always-deny"]),
+    default=None,
+    help="Approval mode for module execution. Default: APCORE_SERVE_APPROVAL config.",
+)
+@click.option(
+    "--output-formatter",
+    type=str,
+    default=None,
+    help="Dotted path to output formatter function (e.g., 'apcore_toolkit.to_markdown').",
+)
+@click.option(
+    "--tags",
+    type=str,
+    default=None,
+    help="Comma-separated tags to filter modules.",
+)
+@click.option(
+    "--prefix",
+    type=str,
+    default=None,
+    help="Module ID prefix filter.",
+)
+@click.option(
+    "--require-auth/--no-require-auth",
+    default=None,
+    help="Require authentication for MCP requests. Default: APCORE_SERVE_REQUIRE_AUTH config.",
+)
+@click.option(
+    "--exempt-paths",
+    type=str,
+    default=None,
+    help="Comma-separated paths exempt from authentication.",
+)
+@click.option(
+    "--explorer-title",
+    type=str,
+    default=None,
+    help="Title for the MCP Tool Explorer UI.",
+)
+@click.option(
+    "--explorer-project-name",
+    type=str,
+    default=None,
+    help="Project name shown in Explorer footer.",
+)
+@click.option(
+    "--explorer-project-url",
+    type=str,
+    default=None,
+    help="Project URL shown in Explorer footer.",
+)
 @with_appcontext
 def serve_command(
     transport: str,
@@ -248,6 +329,15 @@ def serve_command(
     jwt_algorithm: str | None,
     jwt_audience: str | None,
     jwt_issuer: str | None,
+    approval: str | None,
+    output_formatter: str | None,
+    tags: str | None,
+    prefix: str | None,
+    require_auth: bool | None,
+    exempt_paths: str | None,
+    explorer_title: str | None,
+    explorer_project_name: str | None,
+    explorer_project_url: str | None,
 ) -> None:
     """Start an MCP server exposing registered apcore modules as tools."""
     app = current_app._get_current_object()
@@ -283,6 +373,42 @@ def serve_command(
     if jwt_issuer is None:
         jwt_issuer = settings.serve_jwt_issuer
 
+    # Approval config fallback
+    if approval is None:
+        approval = settings.serve_approval
+
+    # Output formatter config fallback
+    if output_formatter is None:
+        output_formatter = settings.serve_output_formatter
+
+    # Tags/prefix filtering
+    tags_list: list[str] | None = None
+    if tags is not None:
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+    elif settings.serve_tags is not None:
+        tags_list = settings.serve_tags
+
+    if prefix is None:
+        prefix = settings.serve_prefix
+
+    # Auth control
+    if require_auth is None:
+        require_auth = settings.serve_require_auth
+
+    exempt_paths_set: set[str] | None = None
+    if exempt_paths is not None:
+        exempt_paths_set = {p.strip() for p in exempt_paths.split(",") if p.strip()}
+    elif settings.serve_exempt_paths is not None:
+        exempt_paths_set = set(settings.serve_exempt_paths)
+
+    # Explorer customization
+    if explorer_title is None:
+        explorer_title = settings.serve_explorer_title
+    if explorer_project_name is None:
+        explorer_project_name = settings.serve_explorer_project_name
+    if explorer_project_url is None:
+        explorer_project_url = settings.serve_explorer_project_url
+
     # Build authenticator if JWT secret is provided
     authenticator = None
     if jwt_secret is not None:
@@ -290,7 +416,7 @@ def serve_command(
             from apcore_mcp import JWTAuthenticator
         except ImportError:
             raise click.ClickException(
-                "apcore-mcp>=0.7.0 is required for JWT authentication. " "Install with: pip install flask-apcore[mcp]"
+                "apcore-mcp>=0.10.0 is required for JWT authentication. " "Install with: pip install flask-apcore[mcp]"
             )
         authenticator = JWTAuthenticator(
             jwt_secret,
@@ -298,6 +424,12 @@ def serve_command(
             audience=jwt_audience,
             issuer=jwt_issuer,
         )
+
+    # Build approval handler
+    approval_handler = _resolve_approval_handler(approval)
+
+    # Resolve output formatter callable
+    formatter_func = _resolve_output_formatter(output_formatter)
 
     # Check module count
     if registry.count == 0:
@@ -330,6 +462,8 @@ def serve_command(
 
     click.echo(f"[flask-apcore] Starting MCP server '{name}' via {transport}...")
     click.echo(f"[flask-apcore] {registry.count} modules registered.")
+    if approval != "off":
+        click.echo(f"[flask-apcore] Approval mode: {approval}")
 
     _do_serve(
         registry_or_executor,
@@ -337,6 +471,7 @@ def serve_command(
         host=host,
         port=port,
         name=name,
+        version=settings.server_version,
         validate_inputs=validate_inputs,
         log_level=log_level,
         metrics_collector=metrics_collector,
@@ -344,7 +479,77 @@ def serve_command(
         explorer_prefix=explorer_prefix,
         allow_execute=allow_execute,
         authenticator=authenticator,
+        approval_handler=approval_handler,
+        output_formatter=formatter_func,
+        tags=tags_list,
+        prefix=prefix,
+        require_auth=require_auth,
+        exempt_paths=exempt_paths_set,
+        explorer_title=explorer_title,
+        explorer_project_name=explorer_project_name,
+        explorer_project_url=explorer_project_url,
     )
+
+
+def _resolve_approval_handler(mode: str) -> Any:
+    """Resolve an approval mode string to an ApprovalHandler instance.
+
+    Args:
+        mode: One of 'off', 'elicit', 'auto-approve', 'always-deny'.
+
+    Returns:
+        An ApprovalHandler instance, or None for 'off'.
+    """
+    if mode == "off":
+        return None
+
+    if mode == "elicit":
+        try:
+            from apcore_mcp import ElicitationApprovalHandler
+        except ImportError:
+            raise click.ClickException(
+                f"apcore-mcp>=0.10.0 is required for approval mode '{mode}'. "
+                "Install with: pip install flask-apcore[mcp]"
+            )
+        return ElicitationApprovalHandler()
+
+    if mode == "auto-approve":
+        from apcore import AutoApproveHandler
+
+        return AutoApproveHandler()
+
+    if mode == "always-deny":
+        from apcore import AlwaysDenyHandler
+
+        return AlwaysDenyHandler()
+
+    raise click.ClickException(f"Unknown approval mode: '{mode}'.")
+
+
+def _resolve_output_formatter(path: str | None) -> Any:
+    """Resolve a dotted path string to an output formatter callable.
+
+    Args:
+        path: Dotted path to a callable (e.g., 'apcore_toolkit.to_markdown'), or None.
+
+    Returns:
+        The callable, or None.
+    """
+    if path is None:
+        return None
+
+    import importlib
+
+    module_path, _, attr_name = path.rpartition(".")
+    if not module_path:
+        raise click.ClickException(
+            f"Invalid output formatter path: '{path}'. " "Must be a dotted path like 'module.func'."
+        )
+    try:
+        mod = importlib.import_module(module_path)
+        return getattr(mod, attr_name)
+    except (ImportError, AttributeError) as e:
+        raise click.ClickException(f"Cannot resolve output formatter '{path}': {e}")
 
 
 def _do_serve(
@@ -354,6 +559,7 @@ def _do_serve(
     host: str,
     port: int,
     name: str,
+    version: str | None = None,
     validate_inputs: bool = False,
     log_level: str | None = None,
     metrics_collector: Any | None = None,
@@ -361,13 +567,19 @@ def _do_serve(
     explorer_prefix: str = "/explorer",
     allow_execute: bool = False,
     authenticator: Any | None = None,
+    approval_handler: Any | None = None,
+    output_formatter: Any | None = None,
+    tags: list[str] | None = None,
+    prefix: str | None = None,
+    require_auth: bool = True,
+    exempt_paths: set[str] | None = None,
+    explorer_title: str = "MCP Tool Explorer",
+    explorer_project_name: str | None = None,
+    explorer_project_url: str | None = None,
 ) -> None:
     """Delegate to apcore_mcp.serve().
 
     Separated for testability (can be mocked in tests).
-
-    Adapted from django-apcore's management/commands/apcore_serve.py serve()
-    function.
     """
     try:
         from apcore_mcp import serve
@@ -381,6 +593,7 @@ def _do_serve(
         host=host,
         port=port,
         name=name,
+        version=version,
         validate_inputs=validate_inputs,
         log_level=log_level,
         metrics_collector=metrics_collector,
@@ -391,5 +604,22 @@ def _do_serve(
         kwargs["allow_execute"] = allow_execute
     if authenticator is not None:
         kwargs["authenticator"] = authenticator
+    if approval_handler is not None:
+        kwargs["approval_handler"] = approval_handler
+    if output_formatter is not None:
+        kwargs["output_formatter"] = output_formatter
+    if tags is not None:
+        kwargs["tags"] = tags
+    if prefix is not None:
+        kwargs["prefix"] = prefix
+    kwargs["require_auth"] = require_auth
+    if exempt_paths is not None:
+        kwargs["exempt_paths"] = exempt_paths
+    if explorer:
+        kwargs["explorer_title"] = explorer_title
+        if explorer_project_name is not None:
+            kwargs["explorer_project_name"] = explorer_project_name
+        if explorer_project_url is not None:
+            kwargs["explorer_project_url"] = explorer_project_url
 
     serve(registry_or_executor, **kwargs)

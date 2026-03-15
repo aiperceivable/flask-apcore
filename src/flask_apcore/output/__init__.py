@@ -29,5 +29,9 @@ def get_writer(output_format: str | None = None):
         from flask_apcore.output.yaml_writer import YAMLWriter
 
         return YAMLWriter()
+    elif output_format == "python":
+        from apcore_toolkit import PythonWriter
+
+        return PythonWriter()
     else:
         raise ValueError(f"Unknown output format: {output_format!r}")

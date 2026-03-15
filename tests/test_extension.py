@@ -197,7 +197,8 @@ class TestObservabilitySetup:
         )
         Apcore(app)
         mws = app.extensions["apcore"]["observability_middlewares"]
-        assert len(mws) == 3
+        # 3 base (tracing, metrics, logging) + 1 error_history + 1 usage = 5
+        assert len(mws) == 5
 
     def test_metrics_collector_populated_when_enabled(self, tmp_path) -> None:
         from flask_apcore import Apcore

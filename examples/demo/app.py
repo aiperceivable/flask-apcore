@@ -7,6 +7,8 @@ Demonstrates:
 - Observability (tracing, metrics, structured logging)
 - MCP server via streamable-http transport
 - JWT authentication for MCP endpoints (apcore-mcp 0.7.0+)
+- Approval system for destructive operations (apcore-mcp 0.8.0+)
+- Output formatting with apcore-toolkit (apcore-mcp 0.10.0+)
 """
 from __future__ import annotations
 
@@ -75,6 +77,12 @@ app.config.update(
     # APCORE_SERVE_JWT_ALGORITHM="HS256",
     # APCORE_SERVE_JWT_AUDIENCE="task-manager",
     # APCORE_SERVE_JWT_ISSUER="https://auth.example.com",
+    # Approval system (apcore-mcp 0.8.0+)
+    # Uncomment to require approval for destructive/approval-required modules:
+    # APCORE_SERVE_APPROVAL="elicit",
+    # Output formatter (apcore-mcp 0.10.0+)
+    # Uncomment to format MCP tool results as Markdown:
+    # APCORE_SERVE_OUTPUT_FORMATTER="apcore_toolkit.to_markdown",
 )
 
 
@@ -148,4 +156,20 @@ def delete_task(task_id: int) -> dict:
 # so that auto-discover can resolve binding targets.
 # ---------------------------------------------------------------------------
 
-Apcore(app)
+apcore = Apcore(app)
+
+# ---------------------------------------------------------------------------
+# Unified entry point usage examples (within request context):
+#
+#   apcore.registry           # Registry instance
+#   apcore.executor           # Executor (lazy-created)
+#   apcore.settings           # ApcoreSettings
+#   apcore.metrics            # MetricsCollector or None
+#   apcore.events             # EventEmitter or None
+#   apcore.error_history      # ErrorHistory or None
+#
+#   apcore.call("task_stats.v1")
+#   apcore.validate("task_stats.v1")
+#   apcore.list_modules()
+#   apcore.describe("task_stats.v1")
+# ---------------------------------------------------------------------------

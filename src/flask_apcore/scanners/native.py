@@ -23,8 +23,6 @@ import logging
 import re
 from typing import TYPE_CHECKING, Callable
 
-from apcore import ModuleAnnotations
-
 from flask_apcore.scanners.base import BaseScanner, ScannedModule
 from flask_apcore.schemas import SchemaDispatcher
 
@@ -105,12 +103,15 @@ class NativeFlaskScanner(BaseScanner):
                 module_id = self._generate_module_id(rule, view_func, method)
                 description = self._extract_description(view_func, rule, method)
                 documentation = self._extract_documentation(view_func)
-                annotations = self._infer_annotations(method)
+                annotations = self.infer_annotations_from_method(method)
                 target = self._generate_target(view_func)
                 tags = self._extract_tags(rule)
 
                 input_schema = self._schema_dispatcher.infer_input_schema(view_func, url_params=url_params)
                 output_schema = self._schema_dispatcher.infer_output_schema(view_func)
+
+                # Enrich schema with docstring parameter descriptions
+                input_schema = self._enrich_from_docstring(view_func, input_schema)
 
                 warnings: list[str] = []
                 if not input_schema.get("properties"):
@@ -139,29 +140,6 @@ class NativeFlaskScanner(BaseScanner):
     def get_source_name(self) -> str:
         """Return human-readable scanner name."""
         return "native-flask"
-
-    def _infer_annotations(self, method: str) -> ModuleAnnotations:
-        """Infer behavioral annotations from HTTP method.
-
-        Mapping:
-            GET    -> readonly=True
-            DELETE -> destructive=True
-            PUT    -> idempotent=True
-            Others -> default (all False)
-
-        Args:
-            method: HTTP method string (uppercase).
-
-        Returns:
-            ModuleAnnotations instance with inferred flags.
-        """
-        if method == "GET":
-            return ModuleAnnotations(readonly=True)
-        elif method == "DELETE":
-            return ModuleAnnotations(destructive=True)
-        elif method == "PUT":
-            return ModuleAnnotations(idempotent=True)
-        return ModuleAnnotations()
 
     def _extract_url_params(self, rule: Rule) -> dict[str, str]:
         """Extract URL path parameters with their Flask converter types.
@@ -271,3 +249,27 @@ class NativeFlaskScanner(BaseScanner):
         if len(parts) > 1:
             return [parts[0]]
         return []
+
+    def _enrich_from_docstring(self, view_func: Callable, schema: dict) -> dict:
+        """Enrich input schema descriptions from function docstring.
+
+        Uses apcore-toolkit's enrich_schema_descriptions to inject parameter
+        descriptions extracted from the docstring into the JSON Schema.
+
+        Args:
+            view_func: The view function to extract docstring from.
+            schema: The JSON Schema dict to enrich.
+
+        Returns:
+            Enriched schema dict.
+        """
+        try:
+            from apcore_toolkit import enrich_schema_descriptions
+            from apcore import parse_docstring
+
+            _, _, param_descriptions = parse_docstring(view_func)
+            if param_descriptions:
+                return enrich_schema_descriptions(schema, param_descriptions)
+        except (ImportError, Exception):
+            pass
+        return schema

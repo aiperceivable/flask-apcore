@@ -602,8 +602,9 @@ class TestCombinedSettings:
     def test_dataclass_fields_count(self) -> None:
         """Ensure ApcoreSettings has exactly the expected number of fields."""
         fields = dataclasses.fields(ApcoreSettings)
-        # 26 existing + 3 serve explorer + 4 JWT auth = 33
-        assert len(fields) == 33
+        # 26 existing + 3 serve explorer + 4 JWT auth + 1 approval + 1 output_formatter
+        # + 2 sys_modules + 2 serve_tags/prefix + 2 auth_control + 3 explorer_custom + 2 scan = 46
+        assert len(fields) == 46
 
 
 # ===========================================================================
@@ -749,3 +750,50 @@ class TestServeJwtIssuer:
     def test_non_string_raises(self) -> None:
         with pytest.raises(ValueError, match="APCORE_SERVE_JWT_ISSUER"):
             _load(APCORE_SERVE_JWT_ISSUER=True)
+
+
+# ===========================================================================
+# 11. Approval settings (apcore-mcp 0.8.0+)
+# ===========================================================================
+
+
+class TestServeApproval:
+    def test_default_off(self) -> None:
+        s = _load()
+        assert s.serve_approval == "off"
+
+    @pytest.mark.parametrize("val", ["off", "elicit", "auto-approve", "always-deny"])
+    def test_valid_modes(self, val: str) -> None:
+        s = _load(APCORE_SERVE_APPROVAL=val)
+        assert s.serve_approval == val
+
+    def test_none_falls_back(self) -> None:
+        s = _load(APCORE_SERVE_APPROVAL=None)
+        assert s.serve_approval == "off"
+
+    def test_invalid_mode_raises(self) -> None:
+        with pytest.raises(ValueError, match="APCORE_SERVE_APPROVAL"):
+            _load(APCORE_SERVE_APPROVAL="invalid")
+
+    def test_non_string_raises(self) -> None:
+        with pytest.raises(ValueError, match="APCORE_SERVE_APPROVAL"):
+            _load(APCORE_SERVE_APPROVAL=123)
+
+
+# ===========================================================================
+# 12. Output formatter settings (apcore-mcp 0.10.0+)
+# ===========================================================================
+
+
+class TestServeOutputFormatter:
+    def test_default_none(self) -> None:
+        s = _load()
+        assert s.serve_output_formatter is None
+
+    def test_valid_path(self) -> None:
+        s = _load(APCORE_SERVE_OUTPUT_FORMATTER="apcore_toolkit.to_markdown")
+        assert s.serve_output_formatter == "apcore_toolkit.to_markdown"
+
+    def test_non_string_raises(self) -> None:
+        with pytest.raises(ValueError, match="APCORE_SERVE_OUTPUT_FORMATTER"):
+            _load(APCORE_SERVE_OUTPUT_FORMATTER=123)

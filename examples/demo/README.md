@@ -1,6 +1,6 @@
 # flask-apcore Demo
 
-Task Manager API demonstrating Flask routes → Scanner → Registry → MCP Server pipeline with observability.
+Task Manager API demonstrating Flask routes -> Scanner -> Registry -> MCP Server pipeline with observability.
 
 ## What's Inside
 
@@ -30,6 +30,12 @@ export FLASK_APP=app.py
 
 # Generate YAML bindings
 flask apcore scan --output yaml --dir ./apcore_modules
+
+# Or generate Python module files
+flask apcore scan --output python --dir ./apcore_modules
+
+# AI-enhance module descriptions (requires APCORE_AI_ENABLED)
+flask apcore scan --ai-enhance
 ```
 
 ### 2. Start the MCP server
@@ -55,7 +61,10 @@ Start the MCP server with the built-in Tool Explorer UI:
 > Only enable in **development/staging**. Do NOT enable in production without adding your own auth layer.
 
 ```bash
-flask apcore serve --http --host 127.0.0.1 --port 9100 --explorer --allow-execute
+flask apcore serve --http --host 127.0.0.1 --port 9100 \
+    --explorer --allow-execute \
+    --explorer-title "Task Manager" \
+    --explorer-project-name "flask-apcore demo"
 ```
 
 Browse to `http://127.0.0.1:9100/explorer/` for the interactive module explorer with Try-it execution.
@@ -75,7 +84,7 @@ The demo ships with 2 seed tasks (id 1 and 2). Use these example inputs in the e
 
 ### 5. JWT Authentication (optional)
 
-Protect MCP endpoints with JWT Bearer tokens (requires `apcore-mcp>=0.7.0`):
+Protect MCP endpoints with JWT Bearer tokens:
 
 ```bash
 flask apcore serve --http --host 127.0.0.1 --port 9100 \
@@ -124,6 +133,66 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:9100/mcp -d '...'
 
 When JWT is enabled, the Explorer UI shows a Bearer token input field for authentication.
 
+### 6. Approval System (optional)
+
+Require approval for destructive or approval-required modules:
+
+```bash
+# Interactive approval via MCP elicitation
+flask apcore serve --http --port 9100 --approval elicit
+
+# Auto-approve all (testing)
+flask apcore serve --http --port 9100 --approval auto-approve
+```
+
+Or set via config:
+
+```python
+app.config["APCORE_SERVE_APPROVAL"] = "elicit"
+```
+
+### 7. Output Formatting (optional)
+
+Format MCP tool results as Markdown:
+
+```bash
+flask apcore serve --http --port 9100 --output-formatter apcore_toolkit.to_markdown
+```
+
+Or set via config:
+
+```python
+app.config["APCORE_SERVE_OUTPUT_FORMATTER"] = "apcore_toolkit.to_markdown"
+```
+
+### 8. Module Filtering (optional)
+
+Filter which modules are exposed via MCP:
+
+```bash
+# By tags
+flask apcore serve --http --tags analytics,api
+
+# By module ID prefix
+flask apcore serve --http --prefix task
+```
+
+## Unified Entry Point
+
+The `Apcore` instance in `app.py` provides direct access to all components:
+
+```python
+apcore = Apcore(app)
+
+with app.app_context():
+    apcore.registry           # Registry
+    apcore.executor           # Executor
+    apcore.metrics            # MetricsCollector
+    apcore.events             # EventEmitter
+    apcore.call("task_stats.v1")
+    apcore.list_modules()
+```
+
 ## Docker
 
 ```bash
@@ -140,12 +209,17 @@ docker compose down
 
 ## Features Demonstrated
 
-- **Route scanning** — `flask apcore scan` discovers all 5 CRUD routes
-- **Annotation inference** — GET→readonly, DELETE→destructive, PUT→idempotent
-- **Pydantic schemas** — Input validation from `TaskCreate` and `TaskUpdate` models
-- **@module decorator** — `task_stats.v1` registered alongside scanned routes
-- **MCP Tool Explorer** — Browser-based module viewer via `flask apcore serve --explorer`
-- **MCP server** — HTTP transport on port 9100
-- **Observability** — Tracing (stdout), metrics, and structured JSON logging
-- **Input validation** — `--validate-inputs` checks tool inputs against schemas
-- **JWT authentication** — `--jwt-secret` protects MCP endpoints with Bearer tokens (apcore-mcp 0.7.0+)
+- **Route scanning** -- `flask apcore scan` discovers all 5 CRUD routes
+- **Annotation inference** -- GET->readonly+cacheable, DELETE->destructive, PUT->idempotent
+- **Docstring enrichment** -- Parameter descriptions injected into JSON Schema
+- **Pydantic schemas** -- Input validation from `TaskCreate` and `TaskUpdate` models
+- **@module decorator** -- `task_stats.v1` registered alongside scanned routes
+- **MCP Tool Explorer** -- Browser-based module viewer via `flask apcore serve --explorer`
+- **MCP server** -- HTTP transport on port 9100
+- **Observability** -- Tracing (stdout), metrics, structured JSON logging, error history, usage tracking
+- **Input validation** -- `--validate-inputs` checks tool inputs against schemas
+- **JWT authentication** -- `--jwt-secret` protects MCP endpoints with Bearer tokens
+- **Approval system** -- `--approval elicit` requires approval for destructive operations
+- **Output formatting** -- `--output-formatter` formats results as Markdown
+- **Module filtering** -- `--tags` and `--prefix` filter exposed modules
+- **Unified entry point** -- `Apcore` class with properties and convenience methods

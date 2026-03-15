@@ -63,7 +63,7 @@ class TestTracingEnabled:
         app = _make_app(APCORE_TRACING_ENABLED=True)
         ext_data = _setup(app)
         mws = ext_data["observability_middlewares"]
-        assert len(mws) == 1
+        assert len(mws) == 2  # tracing + error_history
         from apcore.observability.tracing import TracingMiddleware
 
         assert isinstance(mws[0], TracingMiddleware)
@@ -75,7 +75,7 @@ class TestTracingEnabled:
         )
         ext_data = _setup(app)
         mws = ext_data["observability_middlewares"]
-        assert len(mws) == 1
+        assert len(mws) == 2  # tracing + error_history
         from apcore.observability.tracing import TracingMiddleware
 
         assert isinstance(mws[0], TracingMiddleware)
@@ -111,7 +111,7 @@ class TestMetricsEnabled:
         app = _make_app(APCORE_METRICS_ENABLED=True)
         ext_data = _setup(app)
         mws = ext_data["observability_middlewares"]
-        assert len(mws) == 1
+        assert len(mws) == 3  # metrics + error_history + usage
         from apcore.observability.metrics import MetricsMiddleware
 
         assert isinstance(mws[0], MetricsMiddleware)
@@ -146,7 +146,7 @@ class TestLoggingEnabled:
         app = _make_app(APCORE_LOGGING_ENABLED=True)
         ext_data = _setup(app)
         mws = ext_data["observability_middlewares"]
-        assert len(mws) == 1
+        assert len(mws) == 2  # logging + error_history
         from apcore.observability.context_logger import ObsLoggingMiddleware
 
         assert isinstance(mws[0], ObsLoggingMiddleware)
@@ -160,7 +160,7 @@ class TestLoggingEnabled:
 class TestAllEnabled:
     """When tracing, metrics, and logging are all enabled."""
 
-    def test_three_middlewares(self) -> None:
+    def test_all_middlewares(self) -> None:
         app = _make_app(
             APCORE_TRACING_ENABLED=True,
             APCORE_METRICS_ENABLED=True,
@@ -168,7 +168,8 @@ class TestAllEnabled:
         )
         ext_data = _setup(app)
         mws = ext_data["observability_middlewares"]
-        assert len(mws) == 3
+        # tracing + metrics + logging + error_history + usage = 5
+        assert len(mws) == 5
 
     def test_correct_types(self) -> None:
         app = _make_app(

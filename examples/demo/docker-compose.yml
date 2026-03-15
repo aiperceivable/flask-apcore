@@ -7,3 +7,10 @@ services:
       - "9100:9100"
     environment:
       - FLASK_APP=app.py
+      # Uncomment to enable features:
+      # - APCORE_SYS_MODULES_ENABLED=true
+      # - APCORE_SERVE_EXPLORER=true
+      # - APCORE_SERVE_ALLOW_EXECUTE=true
+      # - APCORE_SERVE_APPROVAL=elicit
+      # - APCORE_SERVE_OUTPUT_FORMATTER=apcore_toolkit.to_markdown
+      # - APCORE_SERVE_JWT_SECRET=change-me-in-production

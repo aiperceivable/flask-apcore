@@ -96,5 +96,40 @@ def setup_observability(settings: ApcoreSettings, ext_data: dict[str, Any]) -> N
             settings.logging_level,
         )
 
+    # --- Error History ---
+    if settings.tracing_enabled or settings.metrics_enabled or settings.logging_enabled:
+        from apcore.observability import ErrorHistory
+        from apcore.middleware import ErrorHistoryMiddleware
+
+        error_history = ErrorHistory()
+        error_history_mw = ErrorHistoryMiddleware(error_history=error_history)
+        middlewares.append(error_history_mw)
+        ext_data["error_history"] = error_history
+        logger.debug("Observability: error history enabled")
+
+    # --- Usage Tracking ---
+    if settings.metrics_enabled:
+        from apcore.observability import UsageCollector, UsageMiddleware
+
+        usage_collector = UsageCollector()
+        usage_mw = UsageMiddleware(collector=usage_collector)
+        middlewares.append(usage_mw)
+        ext_data["usage_collector"] = usage_collector
+        logger.debug("Observability: usage tracking enabled")
+
+    # --- Platform Notify ---
+    if settings.sys_modules_events_enabled and metrics_collector is not None:
+        from apcore import EventEmitter
+        from apcore.middleware import PlatformNotifyMiddleware
+
+        event_emitter = EventEmitter()
+        platform_mw = PlatformNotifyMiddleware(
+            event_emitter=event_emitter,
+            metrics_collector=metrics_collector,
+        )
+        middlewares.append(platform_mw)
+        ext_data["event_emitter"] = event_emitter
+        logger.debug("Observability: platform notify enabled")
+
     ext_data["observability_middlewares"] = middlewares
     ext_data["metrics_collector"] = metrics_collector

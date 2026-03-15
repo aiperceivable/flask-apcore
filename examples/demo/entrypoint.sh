@@ -7,4 +7,10 @@ flask apcore scan --output yaml --dir /app/apcore_modules
 
 echo ""
 echo "=== Starting MCP server on port 9100 ==="
-flask apcore serve --http --host 0.0.0.0 --port 9100 --validate-inputs --log-level DEBUG
+flask apcore serve --http --host 0.0.0.0 --port 9100 \
+    --validate-inputs \
+    --log-level DEBUG \
+    --explorer \
+    --allow-execute \
+    --explorer-title "Task Manager" \
+    --explorer-project-name "flask-apcore demo"

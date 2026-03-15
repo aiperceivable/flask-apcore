@@ -60,6 +60,7 @@ class TestYAMLWriter:
         results = writer.write(modules, str(tmp_path))
 
         assert len(results) == 1
+        assert results[0].module_id == "test.get"
         files = list(tmp_path.glob("*.binding.yaml"))
         assert len(files) == 1
 
@@ -69,10 +70,13 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        binding = results[0]
-        assert "bindings" in binding
-        assert len(binding["bindings"]) == 1
-        entry = binding["bindings"][0]
+        # Read back from file to verify content
+        file_path = results[0].path
+        assert file_path is not None
+        parsed = yaml.safe_load(open(file_path))
+        assert "bindings" in parsed
+        assert len(parsed["bindings"]) == 1
+        entry = parsed["bindings"][0]
         assert entry["module_id"] == "test.get"
         assert entry["target"] == "myapp.views:get_items"
         assert entry["description"] == "Test endpoint"
@@ -84,7 +88,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert "annotations" in entry
         assert entry["annotations"]["readonly"] is True
         assert entry["annotations"]["destructive"] is False
@@ -95,9 +100,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
-        # When annotations is None, it should not be in the output
-        # or should be None
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert entry.get("annotations") is None
 
     def test_yaml_includes_documentation(self, tmp_path):
@@ -106,7 +110,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert entry["documentation"] == "Full documentation text."
 
     def test_yaml_documentation_none(self, tmp_path):
@@ -115,7 +120,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert entry.get("documentation") is None
 
     def test_yaml_includes_metadata(self, tmp_path):
@@ -124,7 +130,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert entry["metadata"]["source"] == "native"
         assert entry["metadata"]["extra"] == "data"
 
@@ -134,7 +141,8 @@ class TestYAMLWriter:
 
         results = writer.write(modules, str(tmp_path))
 
-        entry = results[0]["bindings"][0]
+        parsed = yaml.safe_load(open(results[0].path))
+        entry = parsed["bindings"][0]
         assert entry["metadata"] == {}
 
     def test_dry_run_does_not_write(self, tmp_path):
@@ -144,6 +152,7 @@ class TestYAMLWriter:
         results = writer.write(modules, str(tmp_path), dry_run=True)
 
         assert len(results) == 1
+        assert results[0].module_id == "test.get"
         files = list(tmp_path.glob("*.binding.yaml"))
         assert len(files) == 0
 
@@ -202,6 +211,12 @@ class TestGetWriter:
         writer = get_writer("yaml")
         assert isinstance(writer, YAMLWriter)
 
+    def test_python_returns_python_writer(self):
+        from apcore_toolkit import PythonWriter
+
+        writer = get_writer("python")
+        assert isinstance(writer, PythonWriter)
+
     def test_unknown_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown output format"):
-            get_writer("python")
+            get_writer("csv")
