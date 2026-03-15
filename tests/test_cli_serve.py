@@ -431,6 +431,14 @@ class TestServeExplorer:
 # ---------------------------------------------------------------------------
 
 
+_has_apcore_mcp = True
+try:
+    import apcore_mcp  # noqa: F401
+except ImportError:
+    _has_apcore_mcp = False
+
+
+@pytest.mark.skipif(not _has_apcore_mcp, reason="apcore-mcp not installed")
 class TestServeJwtAuth:
     """--jwt-secret, --jwt-algorithm, --jwt-audience, --jwt-issuer flags."""
 
@@ -515,6 +523,7 @@ class TestServeJwtAuth:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(not _has_apcore_mcp, reason="apcore-mcp not installed")
 class TestDoServeForwardsAuthenticator:
     """_do_serve passes authenticator through to apcore_mcp.serve()."""
 
