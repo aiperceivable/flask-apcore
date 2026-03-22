@@ -2519,10 +2519,10 @@ dev = [
 
 ### E. References
 
-- apcore Python SDK source: `/Users/tercel/WorkSpace/aipartnerup/apcore-python/src/apcore/`
-- apcore-mcp-python source: `/Users/tercel/WorkSpace/aipartnerup/apcore-mcp-python/src/apcore_mcp/`
-- django-apcore source: `/Users/tercel/WorkSpace/aipartnerup/django-apcore/src/django_apcore/`
-- django-apcore tech-design: `/Users/tercel/WorkSpace/aipartnerup/django-apcore/docs/django-apcore/tech-design.md`
+- apcore Python SDK source: `/Users/tercel/WorkSpace/aiperceivable/apcore-python/src/apcore/`
+- apcore-mcp-python source: `/Users/tercel/WorkSpace/aiperceivable/apcore-mcp-python/src/apcore_mcp/`
+- django-apcore source: `/Users/tercel/WorkSpace/aiperceivable/django-apcore/src/django_apcore/`
+- django-apcore tech-design: `/Users/tercel/WorkSpace/aiperceivable/django-apcore/docs/django-apcore/tech-design.md`
 - MCP Protocol Specification: https://spec.modelcontextprotocol.io/
 - Flask Extension Development: https://flask.palletsprojects.com/en/3.0.x/extensiondev/
 - Flask CLI (Click): https://flask.palletsprojects.com/en/3.0.x/cli/

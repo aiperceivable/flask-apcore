@@ -1,6 +1,6 @@
 # flask-apcore
 
-Flask Extension for [apcore](https://github.com/aipartnerup/apcore-python) (AI-Perceivable Core) integration. Expose your Flask routes as MCP tools with auto-discovery, Pydantic schema inference, and built-in observability.
+Flask Extension for [apcore](https://github.com/aiperceivable/apcore-python) (AI-Perceivable Core) integration. Expose your Flask routes as MCP tools with auto-discovery, Pydantic schema inference, and built-in observability.
 
 ## Features
 
@@ -375,7 +375,7 @@ This registers:
 
 ## MCP Tool Explorer
 
-The MCP Tool Explorer is a browser UI provided by [apcore-mcp](https://github.com/aipartnerup/apcore-mcp) for inspecting registered modules and executing them interactively.
+The MCP Tool Explorer is a browser UI provided by [apcore-mcp](https://github.com/aiperceivable/apcore-mcp) for inspecting registered modules and executing them interactively.
 
 > **Security:** Without JWT authentication, Explorer endpoints are unauthenticated. Either enable `--jwt-secret` or only expose in development/staging environments.
 
@@ -470,7 +470,7 @@ from flask_apcore import (
 ## Development
 
 ```bash
-git clone https://github.com/aipartnerup/flask-apcore.git
+git clone https://github.com/aiperceivable/flask-apcore.git
 cd flask-apcore
 pip install -e ".[dev,mcp]"
 pytest

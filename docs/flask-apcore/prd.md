@@ -12,7 +12,7 @@
 | Status             | Draft                                                      |
 | Created            | 2026-02-20                                                 |
 | Last Updated       | 2026-02-20                                                 |
-| Repository         | /Users/tercel/WorkSpace/aipartnerup/flask-apcore/          |
+| Repository         | /Users/tercel/WorkSpace/aiperceivable/flask-apcore/          |
 | Sister Projects    | apcore-python, apcore-mcp-python, django-apcore            |
 | Idea Source        | ideas/flask-apcore-idea.md (validated idea)                |
 

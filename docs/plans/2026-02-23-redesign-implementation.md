@@ -40,7 +40,7 @@ description = "Flask Extension for apcore AI-Perceivable Core integration"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
-    { name = "aipartnerup", email = "tercel.yi@gmail.com" },
+    { name = "aiperceivable", email = "tercel.yi@gmail.com" },
 ]
 dependencies = [
     "flask>=3.0",
