@@ -72,6 +72,7 @@ class TestFlaskLoginUser:
 
                     ctx = factory.create_context(request=request)
 
+        assert ctx.identity is not None
         assert ctx.identity.id == "42"
         assert ctx.identity.type == "user"
 
@@ -102,6 +103,7 @@ class TestGUser:
             with patch("flask_apcore.context.FLASK_LOGIN_AVAILABLE", False):
                 ctx = factory.create_context(request=request)
 
+        assert ctx.identity is not None
         assert ctx.identity.id == "99"
         assert ctx.identity.type == "user"
 
@@ -129,6 +131,7 @@ class TestRequestAuthorization:
             with patch("flask_apcore.context.FLASK_LOGIN_AVAILABLE", False):
                 ctx = factory.create_context(request=request)
 
+        assert ctx.identity is not None
         assert ctx.identity.id == "user"
         assert ctx.identity.type == "api_key"
 

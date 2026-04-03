@@ -32,7 +32,7 @@ keywords = [
 ]
 dependencies = [
     "flask>=3.0",
-    "apcore>=0.13.0",
+    "apcore>=0.14.0",
     "apcore-toolkit>=0.2.0",
     "pydantic>=2.0",
     "PyYAML>=6.0",

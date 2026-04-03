@@ -382,6 +382,7 @@ class TestContextIntegration:
             ctx = factory.create_context(None)
 
             assert ctx is not None
+            assert ctx.identity is not None
             assert ctx.identity.id == "anonymous"
 
 
