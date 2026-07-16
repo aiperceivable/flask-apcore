@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-07-15
+
+Reachable role-based ACL governance for Flask routes + dependency uplift to the aligned apcore 0.26.0 / apcore-toolkit 0.10.0 / apcore-mcp 0.17.2 governance train. All tests pass.
+
+### Added
+
+- **ACL demo (`examples/acl_demo/`)** — runnable Flask app showing apcore Access Control List enforcement on module calls, matching the shared cross-integration contract: an `acl.yaml` (admins may call anything; `orders.list` public; else denied), routes that map `ACLDeniedError` → HTTP 403, and an `X-Roles` demo auth shortcut mapped to an apcore `Identity` via `FlaskContextFactory`. Covered end-to-end by `tests/test_acl_demo.py` (4 cases: admin allowed, anonymous/non-admin denied, public read).
+
+### Fixed
+
+- **`FlaskContextFactory` dropped roles** — it built `Identity(id=..., type="user")` without forwarding the user's roles, so apcore ACL rules keyed on `roles` (e.g. `roles: [admin]`) **never matched** and role-based access control silently did nothing from Flask routes. Roles are now propagated from `g.user.roles` / flask-login `current_user.roles` into `Identity(roles=...)`.
+- **Package scanning aborted on Flask `g` / `request` members** — `_scan_packages_for_modules` called `hasattr(obj, "apcore_module")` on every module member; Flask's `g` / `request` are werkzeug `LocalProxy` objects that raise `RuntimeError` (not `AttributeError`) on attribute access outside an app context, so `hasattr` propagated and **aborted the scan mid-way**, silently dropping every `@module` function alphabetically after `g`. The scan now skips members that raise on attribute access.
+
+### Changed
+
+- **Dependency floors raised to the aligned governance train**: `apcore >= 0.26.0` (was `>= 0.14.0`; Execution Policy §7.9, governance events, no-handler fail-loud), `apcore-toolkit >= 0.10.0` (was `>= 0.2.0`), `apcore-mcp >= 0.17.2` (was `>= 0.10.0`; elicitation approval now sends a non-empty renderable schema).
+- Trace-id test expectations updated for apcore 0.26's 32-char hex `trace_id` (previously a 36-char dash-separated UUID).
+
 ## [0.3.1] - 2026-03-22
 
 ### Changed

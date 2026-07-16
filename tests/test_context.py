@@ -42,7 +42,7 @@ class TestAnonymousContext:
         factory = FlaskContextFactory()
         ctx = factory.create_context(request=None)
         # Should have a UUID-format trace_id
-        assert len(ctx.trace_id) == 36  # UUID with dashes
+        assert len(ctx.trace_id) == 32  # 32-char hex (apcore 0.26, no dashes)
 
 
 # ===========================================================================
@@ -161,10 +161,10 @@ class TestTraceparentExtraction:
             with patch("flask_apcore.context.FLASK_LOGIN_AVAILABLE", False):
                 ctx = factory.create_context(request=request)
 
-        # The trace_id should be derived from the traceparent header
-        # TraceContext.extract returns TraceParent with trace_id = "0af7651916cd43dd8448eb211c80319c"
-        # Context.create converts it to UUID format: "0af76519-16cd-43dd-8448-eb211c80319c"
-        assert ctx.trace_id == "0af76519-16cd-43dd-8448-eb211c80319c"
+        # The trace_id should be derived from the traceparent header.
+        # TraceContext.extract returns TraceParent with trace_id = "0af7651916cd43dd8448eb211c80319c";
+        # apcore 0.26 keeps the 32-char hex form (no dash-separated UUID).
+        assert ctx.trace_id == "0af7651916cd43dd8448eb211c80319c"
 
     def test_missing_traceparent_generates_uuid(self) -> None:
         from flask_apcore.context import FlaskContextFactory
@@ -178,10 +178,10 @@ class TestTraceparentExtraction:
             with patch("flask_apcore.context.FLASK_LOGIN_AVAILABLE", False):
                 ctx = factory.create_context(request=request)
 
-        # Should be a generated UUID (36 chars)
-        assert len(ctx.trace_id) == 36
-        # Should NOT be from a traceparent
-        assert "-" in ctx.trace_id
+        # Should be a generated trace id (32-char hex, apcore 0.26)
+        assert len(ctx.trace_id) == 32
+        # Should NOT be from a traceparent, and uses the dashless hex form
+        assert "-" not in ctx.trace_id
 
     def test_malformed_traceparent_ignored(self) -> None:
         from flask_apcore.context import FlaskContextFactory
@@ -198,8 +198,8 @@ class TestTraceparentExtraction:
             with patch("flask_apcore.context.FLASK_LOGIN_AVAILABLE", False):
                 ctx = factory.create_context(request=request)
 
-        # Should fall back to generated UUID
-        assert len(ctx.trace_id) == 36
+        # Should fall back to a generated trace id (32-char hex, apcore 0.26)
+        assert len(ctx.trace_id) == 32
 
 
 # ===========================================================================

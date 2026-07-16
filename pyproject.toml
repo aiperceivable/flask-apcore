@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flask-apcore"
-version = "0.3.1"
+version = "0.4.0"
 description = "Flask Extension for apcore AI-Perceivable Core integration, exposes Flask routes as MCP tools with auto-discovery, schema inference, YAML binding, and built-in observability. Supports MCP server (stdio/HTTP) for LLM tool integration."
 requires-python = ">=3.11"
 readme = "README.md"
@@ -32,8 +32,8 @@ keywords = [
 ]
 dependencies = [
     "flask>=3.0",
-    "apcore>=0.14.0",
-    "apcore-toolkit>=0.2.0",
+    "apcore>=0.26.0",
+    "apcore-toolkit>=0.10.0",
     "pydantic>=2.0",
     "PyYAML>=6.0",
 ]
@@ -41,7 +41,7 @@ dependencies = [
 [project.optional-dependencies]
 smorest = ["flask-smorest>=0.42"]
 restx = ["flask-restx>=1.0"]
-mcp = ["apcore-mcp>=0.10.0"]
+mcp = ["apcore-mcp>=0.17.2"]
 all = [
     "flask-apcore[mcp,smorest,restx]",
 ]

@@ -101,6 +101,7 @@ class FlaskContextFactory:
                     return Identity(
                         id=str(current_user.id),
                         type="user",
+                        roles=tuple(getattr(current_user, "roles", []) or []),
                     )
             except Exception:
                 logger.debug("flask-login current_user check failed", exc_info=True)
@@ -114,6 +115,7 @@ class FlaskContextFactory:
                 return Identity(
                     id=str(user.id),
                     type="user",
+                    roles=tuple(getattr(user, "roles", []) or []),
                 )
         except RuntimeError:
             # Outside of application context

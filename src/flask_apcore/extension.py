@@ -360,8 +360,16 @@ class Apcore:
             try:
                 mod = importlib.import_module(package_name)
                 for attr_name in dir(mod):
-                    obj = getattr(mod, attr_name)
-                    if callable(obj) and hasattr(obj, "apcore_module"):
+                    try:
+                        obj = getattr(mod, attr_name)
+                        is_apcore_module = callable(obj) and hasattr(obj, "apcore_module")
+                    except Exception:
+                        # Some members (e.g. Flask's `g` / `request` LocalProxies)
+                        # raise on attribute access outside an application context;
+                        # they are never apcore modules -- skip them instead of
+                        # aborting the whole package scan.
+                        continue
+                    if is_apcore_module:
                         try:
                             fm = obj.apcore_module
                             registry.register(fm.module_id, fm)
