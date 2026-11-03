@@ -416,7 +416,7 @@ def serve_command(
             from apcore_mcp import JWTAuthenticator
         except ImportError:
             raise click.ClickException(
-                "apcore-mcp>=0.10.0 is required for JWT authentication. " "Install with: pip install flask-apcore[mcp]"
+                "apcore-mcp>=0.23.3 is required for JWT authentication. " "Install with: pip install flask-apcore[mcp]"
             )
         authenticator = JWTAuthenticator(
             jwt_secret,
@@ -508,7 +508,7 @@ def _resolve_approval_handler(mode: str) -> Any:
             from apcore_mcp import ElicitationApprovalHandler
         except ImportError:
             raise click.ClickException(
-                f"apcore-mcp>=0.10.0 is required for approval mode '{mode}'. "
+                f"apcore-mcp>=0.23.3 is required for approval mode '{mode}'. "
                 "Install with: pip install flask-apcore[mcp]"
             )
         return ElicitationApprovalHandler()

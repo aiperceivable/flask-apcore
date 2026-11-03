@@ -74,6 +74,7 @@ class TestYAMLWriter:
         file_path = results[0].path
         assert file_path is not None
         parsed = yaml.safe_load(open(file_path))
+        assert parsed["spec_version"] == "1.0"
         assert "bindings" in parsed
         assert len(parsed["bindings"]) == 1
         entry = parsed["bindings"][0]

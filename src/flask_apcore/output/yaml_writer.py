@@ -99,6 +99,7 @@ class YAMLWriter:
         Includes annotations, documentation, and metadata fields.
         """
         return {
+            "spec_version": "1.0",
             "bindings": [
                 {
                     "module_id": module.module_id,
@@ -112,5 +113,5 @@ class YAMLWriter:
                     "input_schema": module.input_schema,
                     "output_schema": module.output_schema,
                 }
-            ]
+            ],
         }

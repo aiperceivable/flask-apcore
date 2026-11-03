@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-11-03
+
+Dependency uplift to the aligned apcore 0.32.2 / apcore-toolkit 0.14.1 / apcore-mcp 0.23.3 release train. All tests pass.
+
+### Changed
+
+- **Dependency floors raised**: `apcore >= 0.32.2` (was `>= 0.26.0`), `apcore-toolkit >= 0.14.1` (was `>= 0.10.0`), `apcore-mcp >= 0.23.3` (was `>= 0.17.2`).
+- **YAML bindings now declare `spec_version: "1.0"`** at the document root, matching `apcore-toolkit`'s `YAMLWriter` and satisfying apcore's `BindingLoader`, which warns when the key is absent.
+- Missing-`apcore-mcp` error messages and README now name the current floor (`>= 0.23.3`) instead of the original feature floor.
+
+### Fixed
+
+- **`BaseScanner.infer_annotations_from_method` docstring** now documents that `HEAD` and `OPTIONS` map to `readonly=True` (without `cacheable`), matching apcore-toolkit 0.6.0+.
+
 ## [0.4.0] - 2026-07-15
 
 Reachable role-based ACL governance for Flask routes + dependency uplift to the aligned apcore 0.26.0 / apcore-toolkit 0.10.0 / apcore-mcp 0.17.2 governance train. All tests pass.

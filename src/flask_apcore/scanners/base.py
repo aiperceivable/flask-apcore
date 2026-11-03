@@ -124,10 +124,11 @@ class BaseScanner(ABC):
         """Infer behavioral annotations from an HTTP method.
 
         Delegates to the shared logic in apcore-toolkit. Mapping:
-            GET    -> readonly=True, cacheable=True
-            DELETE -> destructive=True
-            PUT    -> idempotent=True
-            Others -> default (all False)
+            GET             -> readonly=True, cacheable=True
+            HEAD / OPTIONS  -> readonly=True
+            DELETE          -> destructive=True
+            PUT             -> idempotent=True
+            Others          -> default (all False)
 
         Args:
             method: HTTP method string (e.g., "GET", "post").

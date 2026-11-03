@@ -580,7 +580,7 @@ class TestJwtAuthenticatorImportError:
             result = runner.invoke(args=["apcore", "serve", "--jwt-secret", "a-long-enough-secret"])
 
             assert result.exit_code != 0
-            assert "apcore-mcp>=0.10.0" in result.output
+            assert "apcore-mcp>=0.23.3" in result.output
 
 
 # ---------------------------------------------------------------------------
