@@ -11,6 +11,7 @@ Dependency uplift to the aligned apcore 0.32.2 / apcore-toolkit 0.14.1 / apcore-
 - **Dependency floors raised**: `apcore >= 0.32.2` (was `>= 0.26.0`), `apcore-toolkit >= 0.14.1` (was `>= 0.10.0`), `apcore-mcp >= 0.23.3` (was `>= 0.17.2`).
 - **YAML bindings now declare `spec_version: "1.0"`** at the document root, matching `apcore-toolkit`'s `YAMLWriter` and satisfying apcore's `BindingLoader`, which warns when the key is absent.
 - Missing-`apcore-mcp` error messages and README now name the current floor (`>= 0.23.3`) instead of the original feature floor.
+- **Ruff rule selection pinned to `["E4", "E7", "E9", "F"]`** in `pyproject.toml`. Ruff 0.16 widened its implicit default set (SIM/UP/RUF/BLE/TRY/...), so an unpinned CI `pip install` failed while an older local ruff passed. Matches the convention already used by `apcore-python` and `apcore-toolkit-python`.
 
 ### Fixed
 
