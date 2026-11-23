@@ -335,6 +335,11 @@ class Apcore:
                 version=getattr(module, "version", "1.0.0"),
                 annotations=getattr(module, "annotations", None),
                 metadata=getattr(module, "metadata", None),
+                display=getattr(module, "display", None),
+                examples=getattr(module, "examples", None),
+                # apcore 0.33.0 added resources (e.g. a per-module timeout);
+                # rebuilding the module must not drop it.
+                resources=getattr(module, "resources", None),
             )
             registry.unregister(module_id)
             registry.register(module_id, new_module)

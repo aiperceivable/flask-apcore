@@ -250,3 +250,54 @@ class TestConvenienceMethods:
             executor = apcore_ext.get_executor()
         # Should include tracing + metrics middlewares
         assert len(executor.middlewares) >= 2
+
+
+# ===========================================================================
+# Pydantic flattening — rebuild fidelity
+# ===========================================================================
+
+
+class TestFlattenPreservesResources:
+    """Re-registering a flattened module must keep its metadata and resources."""
+
+    def test_resources_survive_pydantic_flattening(self, tmp_path) -> None:
+        from apcore import FunctionModule, ModuleExample
+        from pydantic import BaseModel
+
+        from flask_apcore import Apcore
+
+        class Body(BaseModel):
+            title: str
+
+        def create_item(body) -> dict:
+            return {"title": body.title}
+
+        # Set the annotation to the class object so ``typing.get_type_hints``
+        # can resolve it despite the nested definition.
+        create_item.__annotations__["body"] = Body
+
+        app = _make_app(tmp_path)
+        apcore_ext = Apcore(app)
+        registry = app.extensions["apcore"]["registry"]
+        registry.register(
+            "test.create_item",
+            FunctionModule(
+                func=create_item,
+                module_id="test.create_item",
+                annotations={"requires_approval": True},
+                metadata={"source": "binding"},
+                display={"alias": "create-item"},
+                examples=[ModuleExample(title="demo", inputs={"title": "x"})],
+                resources={"timeout": 1500},
+            ),
+        )
+
+        apcore_ext._flatten_registered_modules(registry)
+
+        module = registry.get("test.create_item")
+        assert module.resources == {"timeout": 1500}
+        assert module.annotations is not None
+        assert module.annotations.requires_approval is True
+        assert module.metadata == {"source": "binding"}
+        assert module.display == {"alias": "create-item"}
+        assert module.examples == [ModuleExample(title="demo", inputs={"title": "x"})]

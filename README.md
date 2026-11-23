@@ -26,9 +26,9 @@ Flask Extension for [apcore](https://github.com/aiperceivable/apcore-python) (AI
 
 - Python >= 3.11
 - Flask >= 3.0
-- apcore >= 0.32.2
-- apcore-toolkit >= 0.14.1
-- apcore-mcp >= 0.23.3 (optional, required for `flask apcore serve`)
+- apcore >= 0.33.0
+- apcore-toolkit >= 0.15.0
+- apcore-mcp >= 0.23.4 (optional, required for `flask apcore serve`)
 
 ## Installation
 
@@ -390,7 +390,7 @@ Browse to `http://127.0.0.1:9100/explorer/` to view the interactive explorer wit
 
 ## JWT Authentication
 
-Protect MCP endpoints with JWT Bearer tokens (requires `apcore-mcp>=0.23.3`, HTTP transports only):
+Protect MCP endpoints with JWT Bearer tokens (requires `apcore-mcp>=0.23.4`, HTTP transports only):
 
 ```bash
 flask apcore serve --http \

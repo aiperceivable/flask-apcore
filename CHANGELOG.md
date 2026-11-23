@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-11-23
+
+Dependency uplift to the aligned apcore 0.33.0 / apcore-toolkit 0.15.0 /
+apcore-mcp 0.23.4 release train. All 505 tests pass.
+
+### Changed
+
+- **Dependency floors raised**: `apcore >= 0.33.0` (was `>= 0.32.2`),
+  `apcore-toolkit >= 0.15.0` (was `>= 0.14.1`), and `apcore-mcp >= 0.23.4`
+  (was `>= 0.23.3`). The README requirements list, the JWT/approval
+  installation hints, and their tests now name the same versions.
+- **`Apcore` Pydantic flattening preserves `resources`.** apcore 0.33.0 added a
+  first-class `resources` block (including the per-module `timeout` budget).
+  When auto-discovery re-registers a module whose function takes Pydantic model
+  parameters, the rebuilt `FunctionModule` now forwards `resources`; previously
+  the declared budget was silently dropped and execution fell back to
+  `executor.default_timeout`. It also preserves `display` and `examples`
+  alongside the documentation, annotations and metadata it already kept.
+
+### Notes
+
+- No other code change was required. The toolkit 0.15.0 effective-parameter
+  scanning and proxy preflight are opt-in surfaces used by apcore-mcp's and
+  apcore-cli's standalone OpenAPI backends; Flask's native url-map scanner and
+  the CLI/extension surfaces this package calls are unchanged.
+
 ## [0.4.1] - 2026-11-03
 
 Dependency uplift to the aligned apcore 0.32.2 / apcore-toolkit 0.14.1 / apcore-mcp 0.23.3 release train. All tests pass.
